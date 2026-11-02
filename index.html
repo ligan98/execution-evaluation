@@ -1,0 +1,631 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>执行与评估交互附录</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<style>
+:root{
+  --bg:#f7f7f5; --panel:#ffffff; --ink:#1d1d1f; --muted:#5f6368; --line:#e2e2de; --accent:#1f5fa8;
+  --accent2:#b5532a; --accent3:#2f7d4f; --accent4:#7a4fa3; --base:#9a9a95; --warn:#a03a2c; --ok:#2f7d4f;
+  --chip:#eef3f9;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#16171a; --panel:#1f2125; --ink:#e8e8ea; --muted:#a0a4ab; --line:#33363c; --accent:#6aa5e8;
+    --accent2:#e08a62; --accent3:#6cc28f; --accent4:#b694dc; --base:#7d7f85; --warn:#e07a6c; --ok:#6cc28f; --chip:#25303d;
+    color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  color-scheme:dark;
+  --bg:#16171a; --panel:#1f2125; --ink:#e8e8ea; --muted:#a0a4ab; --line:#33363c; --accent:#6aa5e8;
+  --accent2:#e08a62; --accent3:#6cc28f; --accent4:#b694dc; --base:#7d7f85; --warn:#e07a6c; --ok:#6cc28f; --chip:#25303d;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.7 "PingFang SC","Microsoft YaHei","Noto Sans CJK SC",system-ui,sans-serif}
+header{padding-block:28px 8px;padding-left:max(16px, env(safe-area-inset-left, 0px));padding-right:max(16px, env(safe-area-inset-right, 0px));max-width:1240px;margin:0 auto}
+h1{font-size:24px;margin:0 0 6px;font-weight:700}
+h2{font-size:17px;margin:0 0 10px}
+h3{font-size:14px;margin:14px 0 6px;color:var(--muted);font-weight:600}
+.lead{color:var(--muted);margin:0;max-width:880px}
+main{max-width:1240px;margin:0 auto;padding-block:12px 40px;padding-left:max(16px, env(safe-area-inset-left, 0px));padding-right:max(16px, env(safe-area-inset-right, 0px));display:grid;grid-template-columns:330px 1fr;gap:18px}
+@media (max-width:900px){main{grid-template-columns:1fr}}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:16px}
+aside .panel{position:sticky;top:12px;max-height:calc(100vh - 24px);overflow:auto}
+@media (max-width:900px){aside .panel{position:static;max-height:none}}
+.ctl{margin:8px 0 12px}
+.ctl label{display:flex;justify-content:space-between;gap:8px;font-size:14px}
+.ctl label span.v{font-variant-numeric:tabular-nums;color:var(--accent);font-weight:600}
+.ctl input[type=range]{width:100%;accent-color:var(--accent)}
+.ctl .hint{font-size:12px;color:var(--muted);line-height:1.5}
+.btns{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:6px}
+button{font:inherit;font-size:13px;border:1px solid var(--line);background:var(--chip);color:var(--ink);border-radius:6px;padding:4px 10px;cursor:pointer}
+button:hover{border-color:var(--accent)}
+select{font:inherit;font-size:14px;width:100%;padding:4px;border-radius:6px;border:1px solid var(--line);background:var(--panel);color:var(--ink)}
+.status{font-size:13px;color:var(--muted);min-height:20px}
+.cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(205px,1fr));gap:10px;margin-bottom:16px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:10px 12px}
+.card .k{font-size:12.5px;color:var(--muted);line-height:1.4}
+.card .n{font-size:22px;font-weight:700;font-variant-numeric:tabular-nums}
+.card .b{font-size:12px;color:var(--muted)}
+.charts{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+@media (max-width:1100px){.charts{grid-template-columns:1fr}}
+.chart{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:12px}
+.chart .t{font-weight:600;font-size:14px;margin-bottom:2px}
+.chart .s{font-size:12px;color:var(--muted);margin-bottom:6px}
+svg text{fill:var(--muted);font-size:11px}
+.legend{display:flex;flex-wrap:wrap;gap:12px;font-size:12px;color:var(--muted);margin-top:4px}
+.legend i{display:inline-block;width:18px;height:3px;vertical-align:middle;margin-right:4px;border-radius:2px}
+.checks{font-size:13px;line-height:1.6}
+.checks .good{color:var(--ok)} .checks .bad{color:var(--warn)}
+.prose{max-width:1240px;margin:0 auto;padding-block:0 40px;padding-left:max(16px, env(safe-area-inset-left, 0px));padding-right:max(16px, env(safe-area-inset-right, 0px))}
+section,aside{min-width:0}
+button:focus-visible,select:focus-visible,input:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.prose .panel p{margin:6px 0}
+table.pt{border-collapse:collapse;width:100%;font-size:13px}
+table.pt td,table.pt th{border-bottom:1px solid var(--line);padding:6px 6px;text-align:left;vertical-align:top}
+table.pt th{color:var(--muted);font-weight:600}
+.tip{position:fixed;pointer-events:none;background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:6px 8px;font-size:12px;display:none;box-shadow:0 2px 8px rgba(0,0,0,.15);z-index:9}
+</style>
+</head>
+<body>
+<header>
+  <h1>执行与评估：人工智能对中国就业、增长与收入分配的影响——交互式附录</h1>
+  <p class="lead">本页在浏览器中实时求解论文的模型。论文中最不确定的是技能形成参数和人工智能能力路径；拖动左侧参数，可以看到哪些结论随参数改变、哪些结论不变。灰色虚线始终是论文的基准校准。所有数字都是模型在给定参数下的结果，不是预测。</p>
+</header>
+<main>
+<aside>
+ <div class="panel">
+  <h2>参数</h2>
+  <div class="btns">
+    <button id="pBase">基准校准</button>
+    <button id="pLow">低损失校准</button>
+  </div>
+  <div class="status" id="status">正在计算……</div>
+  <div id="controls"></div>
+  <h3>政策（自2025年起实施）</h3>
+  <div class="ctl">
+    <select id="policy">
+      <option value="none">无政策</option>
+      <option value="subsidy">入门岗位工资补贴</option>
+      <option value="education">教育改革（提高 χ）</option>
+      <option value="lam_b">实践改革（提高 λ_b）</option>
+      <option value="ai_tax">人工智能服务税</option>
+    </select>
+  </div>
+  <div class="ctl" id="polCtl">
+    <label><span id="polLabel">政策强度</span><span class="v" id="polVal"></span></label>
+    <input type="range" id="polRange">
+    <div class="hint" id="polHint"></div>
+  </div>
+  <h3>命题条件（2019年校准点）</h3>
+  <div class="checks" id="checks"></div>
+ </div>
+</aside>
+<section>
+  <div class="cards" id="cards"></div>
+  <div class="charts">
+    <div class="chart"><div class="t">产出相对于无人工智能路径（%）</div><div class="s">实线：当前参数；浅色实线：实践保持2019年水平的核算基准；灰色虚线：论文基准校准</div><div id="c1"></div><div class="legend" id="l1"></div></div>
+    <div class="chart"><div class="t">评估能力造成的产出损失（%）</div><div class="s">相对于实践保持2019年水平的核算基准；前十年几乎为零，是命题2的时滞</div><div id="c2"></div><div class="legend" id="l2"></div></div>
+    <div class="chart"><div class="t">岗位与评估能力（无人工智能路径＝1）</div><div class="s">人工智能可完成任务中的人工岗位、只能由人完成的执行岗位、评估技能总量</div><div id="c3"></div><div class="legend" id="l3"></div></div>
+    <div class="chart"><div class="t">实际工资（无人工智能路径＝1）</div><div class="s">非评估者平均工资与评估技能价格，均以消费价格平减</div><div id="c4"></div><div class="legend" id="l4"></div></div>
+    <div class="chart"><div class="t">各队列终身收入（相对无人工智能路径，%）</div><div class="s">横轴为进入劳动力市场的年份；起飞期为2023年至快速进步期结束</div><div id="c5"></div><div class="legend" id="l5"></div></div>
+    <div class="chart"><div class="t">各队列成为评估者的比例（%）</div><div class="s">当前参数与无人工智能路径的比较</div><div id="c6"></div><div class="legend" id="l6"></div></div>
+  </div>
+</section>
+</main>
+<div class="prose">
+ <div class="panel">
+  <h2>怎样使用本页</h2>
+  <p>论文对结论分两类处理。方向和时序在全部参数下成立：人工智能可完成任务中的人工岗位减少，评估技能的价格上升，评估能力的损失在冲击后十年内很小、此后逐步扩大。幅度依赖参数：损失有多大，非评估者是受损还是受益，政策效果有多强。拖动参数时，前一类结论应当始终成立，后一类则会明显变化。</p>
+  <p>建议先点击“低损失校准”，比较它与基准校准的差别。两者只在两个参数上不同：只能由人完成的执行实践对评估能力的贡献 λ<sub>b</sub>，以及不依赖现代部门执行实践的评估者比例 m/e。追踪数据只能把这两个参数限定在一个范围内，基准值位于使损失较大的一端。</p>
+  <h2 style="margin-top:14px">参数说明</h2>
+  <table class="pt" id="ptable"><tr><th style="width:18%">参数</th><th>含义</th><th style="width:30%">论文中的依据</th></tr></table>
+  <p style="margin-top:10px;color:var(--muted);font-size:13px">说明：本页使用与论文相同的模型和2018年 CFPS 校准目标，每次改变参数都会重新做2019年的精确校准，再求解2019年至2140年的均衡。为保证可以实时计算，本页不包括需要完全预见迭代的情形（青年自行承担部分培养价值、按培养价值补贴、实践配额），这些结果见论文第五部分和第七部分。页面中的模型代码与论文的 Python 程序在十组参数下逐项核对一致。</p>
+ </div>
+</div>
+<div class="tip" id="tip"></div>
+<script>
+self.CG_DATA = {"births":{"1930":0.9725680933852139,"1931":0.9725680933852139,"1932":0.9725680933852139,"1933":0.9725680933852139,"1934":0.9725680933852139,"1935":2.594552529182879,"1936":2.594552529182879,"1937":2.594552529182879,"1938":2.594552529182879,"1939":2.594552529182879,"1940":4.724124513618676,"1941":4.724124513618676,"1942":4.724124513618676,"1943":4.724124513618676,"1944":4.724124513618676,"1945":8.112256809338522,"1946":8.112256809338522,"1947":8.112256809338522,"1948":8.112256809338522,"1949":8.112256809338522,"1950":12.996303501945524,"1951":12.996303501945524,"1952":12.996303501945524,"1953":12.996303501945524,"1954":12.996303501945524,"1955":14.492996108949416,"1956":14.492996108949416,"1957":14.492996108949416,"1958":14.492996108949416,"1959":14.492996108949416,"1960":18.037159533073925,"1961":18.037159533073925,"1962":18.037159533073925,"1963":18.037159533073925,"1964":18.037159533073925,"1965":23.22587548638132,"1966":23.22587548638132,"1967":23.22587548638132,"1968":23.22587548638132,"1969":23.22587548638132,"1970":23.49747081712062,"1971":23.49747081712062,"1972":23.49747081712062,"1973":23.49747081712062,"1974":23.49747081712062,"1975":18.880933852140075,"1976":18.880933852140075,"1977":18.880933852140075,"1978":17.45001125,"1979":17.2676691,"1980":17.86828935,"1981":20.782135350000004,"1982":22.472276400000002,"1983":20.660628900000003,"1984":20.632817499999998,"1985":22.1138816,"1986":23.928099699999997,"1987":25.29053655,"1988":24.643463099999998,"1989":24.140466999999997,"1990":23.906996099999997,"1991":22.6473504,"1992":21.2490528,"1993":21.317979599999997,"1994":21.0954795,"1995":20.627117600000002,"1996":20.673999000000002,"1997":20.382342750000003,"1998":19.423863400000002,"1999":18.3400404,"2000":17.71490935,"2001":17.017353,"2002":16.465944,"2003":15.989044000000002,"2004":15.92876175,"2005":16.166128,"2006":15.8502318,"2007":15.9464085,"2008":16.0813117,"2009":15.908556999999998,"2010":15.918689500000001,"2011":17.84861445,"2012":19.7305483,"2013":17.7630172,"2014":18.9728238,"2015":16.5445214,"2016":18.832310300000003,"2017":17.6481576,"2018":15.233973599999999,"2019":14.654625450000001,"2020":12.022572,"2021":10.6209472,"2022":9.56042475,"2023":9.0144369,"2024":9.53876075,"2025":9.53876075,"2026":9.53876075,"2027":9.53876075,"2028":9.53876075,"2029":9.53876075,"2030":9.53876075,"2031":9.53876075,"2032":9.53876075,"2033":9.53876075,"2034":9.53876075,"2035":9.53876075,"2036":9.53876075,"2037":9.53876075,"2038":9.53876075,"2039":9.53876075,"2040":9.53876075,"2041":9.53876075,"2042":9.53876075,"2043":9.53876075,"2044":9.53876075,"2045":9.53876075,"2046":9.53876075,"2047":9.53876075,"2048":9.53876075,"2049":9.53876075,"2050":9.53876075,"2051":9.53876075,"2052":9.53876075,"2053":9.53876075,"2054":9.53876075,"2055":9.53876075,"2056":9.53876075,"2057":9.53876075,"2058":9.53876075,"2059":9.53876075,"2060":9.53876075,"2061":9.53876075,"2062":9.53876075,"2063":9.53876075,"2064":9.53876075,"2065":9.53876075,"2066":9.53876075,"2067":9.53876075,"2068":9.53876075,"2069":9.53876075,"2070":9.53876075,"2071":9.53876075,"2072":9.53876075,"2073":9.53876075,"2074":9.53876075,"2075":9.53876075,"2076":9.53876075,"2077":9.53876075,"2078":9.53876075,"2079":9.53876075,"2080":9.53876075,"2081":9.53876075,"2082":9.53876075,"2083":9.53876075,"2084":9.53876075,"2085":9.53876075,"2086":9.53876075,"2087":9.53876075,"2088":9.53876075,"2089":9.53876075,"2090":9.53876075,"2091":9.53876075,"2092":9.53876075,"2093":9.53876075,"2094":9.53876075,"2095":9.53876075,"2096":9.53876075,"2097":9.53876075,"2098":9.53876075,"2099":9.53876075,"2100":9.53876075,"2101":9.53876075,"2102":9.53876075,"2103":9.53876075,"2104":9.53876075,"2105":9.53876075,"2106":9.53876075,"2107":9.53876075,"2108":9.53876075,"2109":9.53876075,"2110":9.53876075,"2111":9.53876075,"2112":9.53876075,"2113":9.53876075,"2114":9.53876075,"2115":9.53876075,"2116":9.53876075,"2117":9.53876075,"2118":9.53876075,"2119":9.53876075,"2120":9.53876075,"2121":9.53876075,"2122":9.53876075,"2123":9.53876075,"2124":9.53876075,"2125":9.53876075,"2126":9.53876075,"2127":9.53876075,"2128":9.53876075,"2129":9.53876075,"2130":9.53876075,"2131":9.53876075,"2132":9.53876075,"2133":9.53876075,"2134":9.53876075,"2135":9.53876075,"2136":9.53876075,"2137":9.53876075,"2138":9.53876075,"2139":9.53876075,"2140":9.53876075,"2141":9.53876075,"2142":9.53876075,"2143":9.53876075,"2144":9.53876075,"2145":9.53876075,"2146":9.53876075,"2147":9.53876075,"2148":9.53876075,"2149":9.53876075,"2150":9.53876075,"2151":9.53876075,"2152":9.53876075,"2153":9.53876075,"2154":9.53876075,"2155":9.53876075,"2156":9.53876075,"2157":9.53876075,"2158":9.53876075,"2159":9.53876075,"2160":9.53876075,"2161":9.53876075,"2162":9.53876075,"2163":9.53876075,"2164":9.53876075,"2165":9.53876075,"2166":9.53876075,"2167":9.53876075,"2168":9.53876075,"2169":9.53876075,"2170":9.53876075,"2171":9.53876075,"2172":9.53876075,"2173":9.53876075,"2174":9.53876075,"2175":9.53876075,"2176":9.53876075,"2177":9.53876075,"2178":9.53876075,"2179":9.53876075,"2180":9.53876075,"2181":9.53876075,"2182":9.53876075,"2183":9.53876075,"2184":9.53876075,"2185":9.53876075,"2186":9.53876075,"2187":9.53876075,"2188":9.53876075,"2189":9.53876075,"2190":9.53876075,"2191":9.53876075,"2192":9.53876075,"2193":9.53876075,"2194":9.53876075,"2195":9.53876075,"2196":9.53876075,"2197":9.53876075,"2198":9.53876075,"2199":9.53876075,"2200":9.53876075},"targets":{"psi0":0.99,"share_a":0.3783,"sV":0.3597,"pm":0.2829,"prem":1.3439,"m_frac":0.33},"base":{"sig":4.0,"eta":0.5,"eps":0.5,"zeta":0.8,"beta":0.6,"chi":0.48,"gam":1.0,"rho":0.0,"lam_b":0.57,"xi":0.5,"pi_M":0.3,"nu":0.0,"ai_rc":1.0},"low":{"lam_b":0.96,"m_frac":0.79}};
+/* JavaScript port of china_growth/model (model.py, calibrate.py, sim.py, analysis.headline) for the
+   HTML companion. Covers the rho = 0 baseline and the policies that need no perfect-foresight iteration
+   (wage subsidy, education, practice reform, AI tax, pacing). Tested against Python by test_model.js. */
+(function (root) {
+  "use strict";
+  const AGE_ENTRY = 22, L_JUN = 10, CAREER = 40, START = 2019, SHOCK = 2023, DISC = 0.03;
+
+  function ces(a, x, b, y, s) {
+    const r = (s - 1) / s;
+    return Math.pow(a * Math.pow(x, r) + b * Math.pow(y, r), 1 / r);
+  }
+
+  // root of f on [lo, hi] by bisection (f(lo) and f(hi) have opposite signs); 200 halvings
+  function bisect(f, lo, hi) {
+    let flo = f(lo);
+    for (let i = 0; i < 200; i++) {
+      const mid = 0.5 * (lo + hi), fm = f(mid);
+      if (fm === 0) return mid;
+      if ((fm < 0) === (flo < 0)) { lo = mid; flo = fm; } else { hi = mid; }
+      if (hi - lo < 1e-14) break;
+    }
+    return 0.5 * (lo + hi);
+  }
+
+  function modernBlock(PM, w, A, K, P, d, s, q) {
+    const sig = P.sig, eta = P.eta, eps = P.eps, al = P.alpha, ka = P.kappa, om = P.omega;
+    const wM = w * (1 + (P.pi_M || 0));
+    const wa = wM * (1 - d - s);
+    const pz = q / A;
+    const nu = P.nu || 0;
+    const Keff = K * Math.pow(A, nu);
+    const ca = Math.pow(Math.pow(al, sig) * Math.pow(wa, 1 - sig) + Math.pow(1 - al, sig) * Math.pow(pz, 1 - sig), 1 / (1 - sig));
+    const cX = Math.pow(Math.pow(ka, eta) * Math.pow(ca, 1 - eta) + Math.pow(1 - ka, eta) * Math.pow(wM, 1 - eta), 1 / (1 - eta));
+    const r = (eps - 1) / eps;
+    const Om = P.Omega === undefined ? 1 : P.Omega;
+    const t = Math.pow(cX / (PM * Om * om), r / (1 - r));
+    const inner = (t - om) / (1 - om);
+    if (!(inner > 0)) return null;
+    const X = Math.pow(inner, -1 / r) * Keff;
+    const F = ces(om, X, 1 - om, Keff, eps);
+    const Y = Om * F;
+    const Xa = X * Math.pow(ka * cX / ca, eta);
+    const nb = X * Math.pow((1 - ka) * cX / wM, eta);
+    const na = Xa * Math.pow(al * ca / wa, sig);
+    const Z = Xa * Math.pow((1 - al) * ca / pz, sig) / A;
+    const wV = PM * Om * (1 - om) * Math.pow(F / Keff, 1 / eps) * Math.pow(A, nu);
+    const psi = wa * na / (wa * na + q * Z);
+    return { X, Y, Xa, na, nb, Z, wV, psi, cX, ca, wa, wM };
+  }
+
+  function solvePeriod(A, K, N, So, P, d, s, q) {
+    d = d || 0; s = s || 0; q = q === undefined ? 1 : q;
+    const beta = P.beta, B = P.B, zeta = P.zeta, phi = P.phi, rc = P.ai_rc || 0;
+    function wageGivenPM(PM) {
+      const f = lw => {
+        const w = Math.exp(lw);
+        const mb = modernBlock(PM, w, A, K, P, d, s, q);
+        const n = mb === null ? 0 : mb.na + mb.nb;
+        if (!isFinite(n)) return -1e3;
+        const LT = Math.max(N - n + So, 1e-9);
+        return lw - Math.log(beta * B * Math.pow(LT, beta - 1));
+      };
+      return Math.exp(bisect(f, -15, 15));
+    }
+    function g(lPM) {
+      const PM = Math.exp(lPM);
+      const w = wageGivenPM(PM);
+      const mb = modernBlock(PM, w, A, K, P, d, s, q);
+      if (mb === null) return -1e3;
+      const n = mb.na + mb.nb;
+      const YT = B * Math.pow(Math.max(N - n + So, 1e-9), beta);
+      const CT = YT - rc * mb.Z;
+      if (CT <= 0) return 1e3;
+      const v = lPM - (1 / zeta) * Math.log(phi / (1 - phi) * CT / mb.Y);
+      return isFinite(v) ? v : 1e3;
+    }
+    const PM = Math.exp(bisect(g, -12, 12));
+    const w = wageGivenPM(PM);
+    const mb = modernBlock(PM, w, A, K, P, d, s, q);
+    const n = mb.na + mb.nb, LT = N - n + So, YT = B * Math.pow(LT, beta), pool = N + So;
+    const out = Object.assign({}, mb, {
+      PM, w, YT, LT, N, So, K, A, d, s, q,
+      pa: mb.na / pool, pb: mb.nb / pool, pm: n / pool,
+      wbar: (n * mb.wM - mb.na * mb.wM * d + LT * w) / pool,
+      GDP: PM * mb.Y + YT - rc * mb.Z, AIcost: rc * mb.Z,
+      subsidy_cost: s * mb.wM * mb.na
+    });
+    out.labor_share = (mb.wa * mb.na + mb.wM * mb.nb + mb.wV * K + beta * YT) / out.GDP;
+    out.theta = PM * mb.Y / (PM * mb.Y + YT);
+    return out;
+  }
+
+  function sumCohorts(births, entry, from, to) {   // sum of E(entry - a) for a in [from, to)
+    let s = 0;
+    for (let a = from; a < to; a++) s += births[entry - a - AGE_ENTRY];
+    return s;
+  }
+
+  function calibrate(T, fixed, births) {
+    const P = Object.assign({}, fixed);
+    const sig = P.sig, eta = P.eta, eps = P.eps, beta = P.beta;
+    const wM = 1 + (P.pi_M || 0), d0 = 0;
+    const N = sumCohorts(births, 2019, 0, L_JUN), S = sumCohorts(births, 2019, L_JUN, CAREER);
+    const psi0 = T.psi0, sa_ = T.share_a, sV = T.sV, prem = T.prem;
+    const wa = wM * (1 - d0);
+    const cz = (1 - psi0) / psi0 * wa;
+    const unit = sa_ * (wa + cz) + (1 - sa_) * wM;
+    const lam = sV * unit / ((1 - sV) * prem * wM);
+    const n = T.pm * (N + S) / (1 + T.pm * lam);
+    const Ev = lam * n, So = S - Ev, pool = N + So;
+    const na = sa_ * n, nb = n - na, Z = cz * na;
+    const pa = na / pool, pb = nb / pool, e = Ev / S;
+    P.m = T.m_frac * e;
+    P.mu = (e - P.m) / (pa + P.lam_b * pb);
+    const k = P.mu * (pa * (P.chi + (1 - P.chi) * Math.pow(psi0, P.gam)) + P.lam_b * pb) + P.m * P.chi;
+    const K = S * k;
+    const LT = pool - n;
+    P.B = Math.pow(LT, 1 - beta) / beta;
+    const YT = P.B * Math.pow(LT, beta);
+    const rat = Math.pow((1 - psi0) / psi0 * Math.pow(wa, 1 - sig), 1 / sig);
+    P.alpha = 1 / (1 + rat);
+    const al = P.alpha;
+    const ca = Math.pow(Math.pow(al, sig) * Math.pow(wa, 1 - sig) + Math.pow(1 - al, sig), 1 / (1 - sig));
+    const sa = (wa * na + Z) / (wa * na + Z + wM * nb);
+    const ratio = Math.pow(sa / (1 - sa) * Math.pow(wM, 1 - eta) / Math.pow(ca, 1 - eta), 1 / eta);
+    P.kappa = ratio / (1 + ratio);
+    const ka = P.kappa;
+    const cX = Math.pow(Math.pow(ka, eta) * Math.pow(ca, 1 - eta) + Math.pow(1 - ka, eta) * Math.pow(wM, 1 - eta), 1 / (1 - eta));
+    const X = (wa * na + Z + wM * nb) / cX;
+    const R = (wa * na + Z + wM * nb) / (1 - sV);
+    const r = (eps - 1) / eps;
+    P.omega = 1 / (1 + sV / (1 - sV) * Math.pow(X / K, r));
+    P.Omega = R / ces(P.omega, X, 1 - P.omega, K, eps);
+    P.phi = R / (R + YT - (P.ai_rc || 0) * Z);
+    const r19 = solvePeriod(1, K, N, So, P, 0, 0, 1);
+    r19.Ev = Ev; r19.eval_share = e;
+    return { P, r19, ss: [pa, pb, psi0] };
+  }
+
+  function Apath(g, years, end) {
+    const A = {}; let a = 1;
+    for (let t = START; t <= end; t++) {
+      if (t >= SHOCK) a *= 1 + (t < SHOCK + years ? g : 0.02);
+      A[t] = a;
+    }
+    return A;
+  }
+
+  // one simulated economy: opts = {freeze, chiOf, lambOf, sOf, qOf}
+  function runEconomy(P, births, ss, wV0, A, end, opts) {
+    const freeze = !!opts.freeze;
+    const chiOf = opts.chiOf || (() => P.chi);
+    const lambOf = opts.lambOf || (() => P.lam_b);
+    const sOf = opts.sOf || (() => 0);
+    const qOf = opts.qOf || (() => 1);
+    const pa = {}, pb = {}, psi = {}, wVh = {}, res = {};
+    const E = entry => births[entry - AGE_ENTRY];
+    function cohortPractice(tau, chi) {
+      let ps = [], pbs = [], qs = [];
+      for (let u = tau; u < tau + L_JUN; u++) {
+        if (freeze) { ps.push(ss[0]); pbs.push(ss[1]); qs.push(ss[2]); }
+        else {
+          ps.push(u in pa ? pa[u] : ss[0]); pbs.push(u in pb ? pb[u] : ss[1]); qs.push(u in psi ? psi[u] : ss[2]);
+        }
+      }
+      const Pa = ps.reduce((x, y) => x + y, 0) / L_JUN, Pb = pbs.reduce((x, y) => x + y, 0) / L_JUN;
+      let num = 0, den = 0;
+      for (let i = 0; i < L_JUN; i++) { num += ps[i] * qs[i]; den += ps[i]; }
+      const Psi = num / Math.max(den, 1e-12);
+      const lb = lambOf(tau);
+      const e_pr = P.mu * (Pa + lb * Pb);
+      const units_pr = P.mu * (Pa * (chi + (1 - chi) * Math.pow(Psi, P.gam)) + lb * Pb);
+      const skill_pr = units_pr / Math.max(e_pr, 1e-12);
+      const wvEntry = freeze ? wV0 : (tau in wVh ? wVh[tau] : wV0);
+      const m_tau = Math.min(P.m * Math.pow(wvEntry / wV0, P.xi || 0), P.m_cap === undefined ? 0.5 : P.m_cap);
+      return { Pa, Pb, Psi, e_pr, e_ed: m_tau, skill_pr, k: units_pr + m_tau * chi, e: e_pr + m_tau };
+    }
+    for (let t = START; t <= end; t++) {
+      const N = sumCohorts(births, t, 0, L_JUN);
+      let K = 0, So = 0;
+      for (let a = L_JUN; a < CAREER; a++) {
+        const tau = t - a, c = cohortPractice(tau, chiOf(tau));
+        K += E(tau) * c.k; So += E(tau) * (1 - c.e);
+      }
+      const r = solvePeriod(A[t], K, N, So, P, 0, sOf(t), qOf(t));
+      pa[t] = r.pa; pb[t] = r.pb; psi[t] = r.psi; wVh[t] = r.wV / r.w; r.year = t;
+      res[t] = r;
+    }
+    function cohortIncome(tau, deflator) {
+      const chi = chiOf(tau), c = cohortPractice(tau, chi);
+      let jun = 0, evPr = 0, evEd = 0, non = 0;
+      for (let t = tau; t < tau + L_JUN; t++) {
+        const r = res[Math.max(t, START)];
+        const wage = r.pa * r.wM * (1 - r.d) + r.pb * r.wM + (1 - r.pa - r.pb) * r.w;
+        jun += wage / deflator(r) / Math.pow(1 + DISC, t - tau);
+      }
+      for (let t = tau + L_JUN; t < tau + CAREER; t++) {
+        const r = res[Math.max(t, START)];
+        const dd = Math.pow(1 + DISC, t - tau) * deflator(r);
+        evPr += r.wV * c.skill_pr / dd; evEd += r.wV * chi / dd; non += r.wbar / dd;
+      }
+      const mean = jun + c.e_pr * evPr + c.e_ed * evEd + (1 - c.e_pr - c.e_ed) * non;
+      return { mean, evaluator: jun + evPr, nonevaluator: jun + non, share_eval: c.e_pr + c.e_ed };
+    }
+    return { res, cohortIncome };
+  }
+
+  function cpi(r, P) {
+    const phi = P.phi, zeta = P.zeta, PM = r.PM;
+    if (Math.abs(zeta - 1) < 1e-9) return Math.pow(PM, phi);
+    return Math.pow(phi * Math.pow(PM, 1 - zeta) + (1 - phi), 1 / (1 - zeta));
+  }
+  const realGDP = r => r.Y + r.YT - (r.AIcost || 0);
+
+  // policy: {kind: 'subsidy'|'education'|'lam_b'|'ai_tax', val, t0}
+  function policyOpts(P, policy) {
+    if (!policy) return {};
+    const { kind, val, t0 } = policy;
+    if (kind === "subsidy") return { sOf: t => (t >= t0 ? val : 0) };
+    if (kind === "education") return { chiOf: tau => (tau >= t0 ? Math.min(P.chi + val, 1) : P.chi) };
+    if (kind === "lam_b") return { lambOf: tau => (tau >= t0 ? Math.min(P.lam_b + val, 1) : P.lam_b) };
+    if (kind === "ai_tax") return { qOf: t => (t >= t0 ? 1 + val : 1) };
+    throw new Error("unknown policy " + kind);
+  }
+
+  // full comparison: main path, no-AI path, frozen-practice path; end = 2140 as in the paper
+  function headline(T, fixed, births, g, years, policy, end) {
+    end = end || 2140;
+    const cal = calibrate(T, fixed, births);
+    const P = cal.P, wV0 = cal.r19.wV / cal.r19.w;
+    const A = Apath(g, years, end), A0 = {};
+    for (let t = START; t <= end; t++) A0[t] = 1;
+    const po = policyOpts(P, policy);
+    const main = runEconomy(P, births, cal.ss, wV0, A, end, po);
+    const noai = runEconomy(P, births, cal.ss, wV0, A0, end, {});
+    const frz = runEconomy(P, births, cal.ss, wV0, A, end, Object.assign({}, po, { freeze: true }));
+    const yrs = []; for (let t = START; t <= end; t++) yrs.push(t);
+    const y = {}, y0 = {}, yf = {}, u = {}, u0 = {}, ne = {}, ne0 = {};
+    for (const t of yrs) {
+      const r = main.res[t], r0 = noai.res[t], rf = frz.res[t];
+      y[t] = realGDP(r); y0[t] = realGDP(r0); yf[t] = realGDP(rf);
+      u[t] = r.GDP / cpi(r, P); u0[t] = r0.GDP / cpi(r0, P);
+      ne[t] = r.wbar * (r.N + r.So) / cpi(r, P); ne0[t] = r0.wbar * (r0.N + r0.So) / cpi(r0, P);
+    }
+    const pv = s => yrs.reduce((acc, t) => acc + (t >= 2023 ? s[t] / Math.pow(1 + DISC, t - 2023) : 0), 0);
+    const gain = {}, loss = {};
+    for (const t of yrs) { gain[t] = y[t] / y0[t] - 1; loss[t] = y[t] / yf[t] - 1; }
+    let peak = yrs[0];
+    for (const t of yrs) if (gain[t] > gain[peak]) peak = t;
+    const defl = r => cpi(r, P);
+    const cohorts = {};
+    for (let tau = 2010; tau <= 2060; tau += 5) {
+      const c = main.cohortIncome(tau, defl), c0 = noai.cohortIncome(tau, defl);
+      cohorts[tau] = {
+        mean_vs_noai: c.mean / c0.mean - 1, non_vs_noai: c.nonevaluator / c0.nonevaluator - 1,
+        share_eval: c.share_eval, share_eval_noai: c0.share_eval, ratio_eval_non: c.evaluator / c.nonevaluator
+      };
+    }
+    return {
+      P, r19: cal.r19, yrs, gain, loss, main: main.res, noai: noai.res, frozen: frz.res, y, y0, yf, cohorts,
+      headline: {
+        peak_year: peak, peak_gain: gain[peak],
+        loss_vs_frozen_2033: loss[2033], loss_vs_frozen_2050: loss[2050], loss_vs_frozen_2080: loss[2080],
+        gain_vs_noai_2080: gain[2080], frozen_gain_2080: yf[2080] / y0[2080] - 1,
+        pv_welfare_vs_noai: pv(u) / pv(u0) - 1, pv_noneval_vs_noai: pv(ne) / pv(ne0) - 1
+      }
+    };
+  }
+
+  const api = { calibrate, solvePeriod, modernBlock, runEconomy, headline, Apath, cpi, realGDP, CONST: { AGE_ENTRY, L_JUN, CAREER, START, SHOCK } };
+  if (typeof module !== "undefined" && module.exports) module.exports = api; else root.CGModel = api;
+})(typeof self !== "undefined" ? self : this);
+
+</script>
+<script>
+(function(){
+"use strict";
+const M = self.CGModel, D = self.CG_DATA;
+const births = {}; for (const k in D.births) births[+k] = D.births[k];
+const SPEC = [
+  {group:"人工智能能力路径", items:[
+    {id:"g", label:"快速进步期能力年增速", min:0.05, max:0.6, step:0.05, base:0.30, fmt:v=>Math.round(v*100)+"%", hint:"2023年起人工智能完成单位任务的有效价格按此速度下降"},
+    {id:"years", label:"快速进步期长度（年）", min:5, max:50, step:1, base:20, fmt:v=>v+"年", hint:"此后能力每年提高2%"}]},
+  {group:"技能形成（最不确定）", items:[
+    {id:"lam_b", label:"λ_b 非替代任务实践的相对贡献", min:0, max:1, step:0.01, base:D.base.lam_b, low:D.low.lam_b, fmt:v=>v.toFixed(2), hint:"追踪数据：未调整0.57，控制教育后约1"},
+    {id:"m_frac", label:"m/e 不依赖执行实践的评估者比例", min:0.05, max:0.9, step:0.01, base:D.targets.m_frac, low:D.low.m_frac, target:true, fmt:v=>v.toFixed(2), hint:"追踪数据：0.33至0.79"},
+    {id:"chi", label:"χ 不依赖亲手实践的评估能力份额", min:0.1, max:0.9, step:0.01, base:D.base.chi, fmt:v=>v.toFixed(2), hint:"大学毕业生经验收入曲线：0.48"},
+    {id:"xi", label:"ξ 教育途径对评估者收入的弹性", min:0, max:1.5, step:0.05, base:D.base.xi, fmt:v=>v.toFixed(2), hint:"评估者收入上升时，经由教育成为评估者的人增加"}]},
+  {group:"生产与需求弹性", items:[
+    {id:"sig", label:"σ 人与人工智能的替代弹性", min:1.5, max:8, step:0.1, base:D.base.sig, fmt:v=>v.toFixed(1), hint:"人工智能可完成任务中，人与人工智能的可替代程度"},
+    {id:"eps", label:"ε 执行与评估的替代弹性", min:0.2, max:0.95, step:0.01, base:D.base.eps, fmt:v=>v.toFixed(2), hint:"越小，评估瓶颈越紧"},
+    {id:"zeta", label:"ζ 现代与传统产品的替代弹性", min:0.3, max:2, step:0.05, base:D.base.zeta, fmt:v=>v.toFixed(2), hint:"消费者需求的价格弹性"},
+    {id:"eta", label:"η 两类执行任务的替代弹性", min:0.2, max:0.95, step:0.01, base:D.base.eta, fmt:v=>v.toFixed(2), hint:"人工智能可完成任务与只能由人完成的任务"}]},
+  {group:"劳动力市场", items:[
+    {id:"pi_M", label:"π_M 现代部门工资溢价", min:0, max:1, step:0.01, base:D.base.pi_M, fmt:v=>Math.round(v*100)+"%", hint:"教育调整后的青年工资差距：30%"},
+    {id:"beta", label:"β 传统部门劳动产出弹性", min:0.3, max:0.9, step:0.05, base:D.base.beta, fmt:v=>v.toFixed(2), hint:"越小，流入传统部门的劳动者越压低工资"}]},
+  {group:"扩展", items:[
+    {id:"nu", label:"ν 人工智能辅助评估的程度", min:0, max:0.2, step:0.01, base:D.base.nu, fmt:v=>v.toFixed(2), hint:"人工智能提高评估者效率；0为基准"},
+    {id:"ai_rc", label:"人工智能服务消耗实际资源", min:0, max:1, step:1, base:D.base.ai_rc, fmt:v=>v>0?"是":"否", hint:"否：把人工智能支出视为国内增加值"}]}
+];
+const POL = {
+  none:{},
+  subsidy:{label:"补贴率", min:0, max:0.6, step:0.05, val:0.3, fmt:v=>Math.round(v*100)+"%", hint:"对人工智能可完成任务中的青年工资补贴"},
+  education:{label:"χ 提高", min:0, max:0.4, step:0.05, val:0.2, fmt:v=>"+"+v.toFixed(2), hint:"教育改革使不依赖亲手实践的评估能力份额提高"},
+  lam_b:{label:"λ_b 提高", min:0, max:0.5, step:0.05, val:0.25, fmt:v=>"+"+v.toFixed(2), hint:"在人工智能难以完成的岗位中推行轮岗和师徒制（上限为1）"},
+  ai_tax:{label:"税率", min:0, max:1, step:0.05, val:0.3, fmt:v=>Math.round(v*100)+"%", hint:"对人工智能服务按价格征税"}
+};
+const PARAM_TEXT = [
+  ["σ","人工智能可完成任务中人与人工智能的替代弹性","设定为4，扫描2至6"],
+  ["ε","执行服务与评估服务的替代弹性，小于1表示互补","设定为0.5，扫描0.3至0.8"],
+  ["ζ","现代产品与传统产品的替代弹性","设定为0.8，扫描0.5至1.2"],
+  ["η","人工智能可完成任务与只能由人完成任务之间的替代弹性","设定为0.5，扫描0.3至0.8"],
+  ["λ_b","只能由人完成的执行实践对评估能力的相对贡献","CFPS 追踪数据：未调整0.57，控制教育后0.96，不同设计在0.44至1.30之间"],
+  ["m/e","不依赖现代部门执行实践的评估者比例","CFPS 追踪数据：0.33（基准）至0.79"],
+  ["χ","评估能力中不依赖亲手实践、可由教育获得的份额","评估类职业大学毕业生入职初期与工作20年的收入之比：0.48"],
+  ["ξ","经由教育成为评估者的人数对评估者相对收入的弹性","设定为0.5，扫描0至1"],
+  ["π_M","现代部门对传统部门的工资溢价","22至34岁劳动者教育调整后的收入比：1.30"],
+  ["β","传统部门的劳动产出弹性","设定为0.6，扫描0.4至0.8"],
+  ["ν","人工智能提高评估者效率的程度","基准为0，扫描0.05、0.1"],
+  ["g、快速期","人工智能能力的年增速和快速进步期长度","情景：基准30%、20年"]
+];
+const $ = id => document.getElementById(id);
+const state = {};
+function buildControls(){
+  const box = $("controls");
+  for (const grp of SPEC){
+    const h = document.createElement("h3"); h.textContent = grp.group; box.appendChild(h);
+    for (const it of grp.items){
+      state[it.id] = it.base;
+      const d = document.createElement("div"); d.className = "ctl";
+      d.innerHTML = `<label><span>${it.label}</span><span class="v" id="v_${it.id}"></span></label>
+        <input type="range" id="r_${it.id}" min="${it.min}" max="${it.max}" step="${it.step}" value="${it.base}">
+        <div class="hint">${it.hint}</div>`;
+      box.appendChild(d);
+      const r = d.querySelector("input");
+      r.addEventListener("input", () => { state[it.id] = +r.value; showVals(); schedule(); });
+    }
+  }
+  const tb = $("ptable");
+  for (const [a,b,c] of PARAM_TEXT){ const tr = document.createElement("tr"); tr.innerHTML = `<td>${a}</td><td>${b}</td><td>${c}</td>`; tb.appendChild(tr); }
+  $("policy").addEventListener("change", () => { setPolicyCtl(); schedule(); });
+  $("polRange").addEventListener("input", () => { showVals(); schedule(); });
+  $("pBase").addEventListener("click", () => preset(false));
+  $("pLow").addEventListener("click", () => preset(true));
+  setPolicyCtl();
+}
+function setPolicyCtl(){
+  const p = POL[$("policy").value], c = $("polCtl"), r = $("polRange");
+  if (!p.label){ c.style.display = "none"; return; }
+  c.style.display = ""; $("polLabel").textContent = p.label; $("polHint").textContent = p.hint;
+  r.min = p.min; r.max = p.max; r.step = p.step; r.value = p.val; showVals();
+}
+function preset(low){
+  for (const grp of SPEC) for (const it of grp.items){
+    const v = low && it.low !== undefined ? it.low : it.base;
+    state[it.id] = v; $("r_"+it.id).value = v;
+  }
+  showVals(); schedule();
+}
+function showVals(){
+  for (const grp of SPEC) for (const it of grp.items) $("v_"+it.id).textContent = it.fmt(state[it.id]);
+  const p = POL[$("policy").value]; if (p.label) $("polVal").textContent = p.fmt(+$("polRange").value);
+}
+function inputs(){
+  const T = Object.assign({}, D.targets, {m_frac: state.m_frac});
+  const fx = Object.assign({}, D.base);
+  for (const k of ["lam_b","chi","xi","sig","eps","zeta","eta","pi_M","beta","nu","ai_rc"]) fx[k] = state[k];
+  const kind = $("policy").value;
+  const pol = kind === "none" ? null : {kind, val: +$("polRange").value, t0: 2025};
+  return {T, fx, g: state.g, years: Math.round(state.years), pol};
+}
+let timer = null, BASE = null;
+function schedule(){ clearTimeout(timer); $("status").textContent = "正在计算……"; timer = setTimeout(run, 150); }
+function run(){
+  const t0 = performance.now();
+  const I = inputs();
+  let out;
+  try { out = M.headline(I.T, I.fx, births, I.g, I.years, I.pol, 2140); }
+  catch(e){ $("status").textContent = "该参数组合下无法求得均衡，请调整参数。"; return; }
+  render(out);
+  $("status").textContent = `已更新（${Math.round(performance.now()-t0)} 毫秒）`;
+}
+const pct = (x, d=1) => (x*100).toFixed(d) + "%";
+function card(k, now, base, note){ return `<div class="card"><div class="k">${k}</div><div class="n">${now}</div><div class="b">${note || ("论文基准："+base)}</div></div>`; }
+function render(o){
+  const h = o.headline, b = BASE.headline, c = o.cohorts, cb = BASE.cohorts;
+  const peakTxt = (hh) => hh.peak_year >= 2140 ? "持续上升" : hh.peak_year + "年";
+  const ero = (hh) => hh.frozen_gain_2080 > 0 ? pct(1 - hh.gain_vs_noai_2080 / hh.frozen_gain_2080, 0) : "—";
+  $("cards").innerHTML =
+    card("产出增幅峰值（相对无人工智能）", pct(h.peak_gain), pct(b.peak_gain)+"，"+peakTxt(b), "峰值年份："+peakTxt(h)+"；基准 "+pct(b.peak_gain)) +
+    card("评估能力造成的损失：2033年", pct(-h.loss_vs_frozen_2033, 2), pct(-b.loss_vs_frozen_2033, 2)) +
+    card("评估能力造成的损失：2050年", pct(-h.loss_vs_frozen_2050), pct(-b.loss_vs_frozen_2050)) +
+    card("评估能力造成的损失：2080年", pct(-h.loss_vs_frozen_2080), pct(-b.loss_vs_frozen_2080)) +
+    card("2080年被抵消的人工智能收益", ero(h), ero(b)) +
+    card("贴现实际收入增幅（2023—2140年）", pct(h.pv_welfare_vs_noai), pct(b.pv_welfare_vs_noai)) +
+    card("非评估者工资收入现值变化", pct(h.pv_noneval_vs_noai), pct(b.pv_noneval_vs_noai)) +
+    card("2030年队列成为评估者的比例", pct(c[2030].share_eval), pct(cb[2030].share_eval), "无人工智能路径："+pct(c[2030].share_eval_noai)+"；基准 "+pct(cb[2030].share_eval)) +
+    card("2050年队列非评估者终身收入", pct(c[2050].non_vs_noai), pct(cb[2050].non_vs_noai));
+  checks(o);
+  const yrs = o.yrs.filter(t => t <= 2100);
+  const ser = (obj, f) => yrs.map(t => [t, f(obj, t)]);
+  line("c1","l1",[
+    {name:"当前参数", color:"var(--accent)", pts: ser(o, (x,t)=>100*x.gain[t])},
+    {name:"实践保持2019年水平", color:"var(--accent3)", w:1.5, op:0.6, pts: ser(o, (x,t)=>100*(x.yf[t]/x.y0[t]-1))},
+    {name:"论文基准", color:"var(--base)", dash:true, pts: ser(BASE, (x,t)=>100*x.gain[t])}], {zero:true, unit:"%"});
+  line("c2","l2",[
+    {name:"当前参数", color:"var(--accent2)", pts: ser(o, (x,t)=>100*x.loss[t])},
+    {name:"论文基准", color:"var(--base)", dash:true, pts: ser(BASE, (x,t)=>100*x.loss[t])}], {zero:true, unit:"%"});
+  const rel = (x, k, t) => x.main[t][k] / x.noai[t][k];
+  line("c3","l3",[
+    {name:"人工智能可完成任务中的人工岗位", color:"var(--accent)", pts: ser(o,(x,t)=>rel(x,"na",t))},
+    {name:"只能由人完成的执行岗位", color:"var(--accent3)", pts: ser(o,(x,t)=>rel(x,"nb",t))},
+    {name:"评估技能总量", color:"var(--accent4)", pts: ser(o,(x,t)=>rel(x,"K",t))},
+    {name:"评估技能总量（论文基准）", color:"var(--base)", dash:true, pts: ser(BASE,(x,t)=>rel(x,"K",t))}], {one:true});
+  const real = (x,k,t) => (x.main[t][k]/M.cpi(x.main[t],x.P)) / (x.noai[t][k]/M.cpi(x.noai[t],x.P));
+  line("c4","l4",[
+    {name:"非评估者平均工资", color:"var(--accent)", pts: ser(o,(x,t)=>real(x,"wbar",t))},
+    {name:"评估技能价格", color:"var(--accent2)", pts: ser(o,(x,t)=>real(x,"wV",t))},
+    {name:"非评估者平均工资（论文基准）", color:"var(--base)", dash:true, pts: ser(BASE,(x,t)=>real(x,"wbar",t))}], {one:true, log:false});
+  const taus = Object.keys(c).map(Number).sort((a,b)=>a-b);
+  line("c5","l5",[
+    {name:"队列平均", color:"var(--accent)", pts: taus.map(t=>[t,100*c[t].mean_vs_noai]), dots:true},
+    {name:"非评估者", color:"var(--accent2)", pts: taus.map(t=>[t,100*c[t].non_vs_noai]), dots:true},
+    {name:"非评估者（论文基准）", color:"var(--base)", dash:true, pts: taus.map(t=>[t,100*cb[t].non_vs_noai])}], {zero:true, unit:"%", x0:2010, x1:2060});
+  line("c6","l6",[
+    {name:"当前参数", color:"var(--accent)", pts: taus.map(t=>[t,100*c[t].share_eval]), dots:true},
+    {name:"无人工智能路径", color:"var(--accent3)", pts: taus.map(t=>[t,100*c[t].share_eval_noai])},
+    {name:"论文基准", color:"var(--base)", dash:true, pts: taus.map(t=>[t,100*cb[t].share_eval])}], {unit:"%", x0:2010, x1:2060});
+}
+function checks(o){
+  const r = o.r19, P = o.P;
+  const sV = r.wV * r.K / (r.PM * r.Y), sX = 1 - sV;
+  const sa = r.ca * r.Xa / (r.cX * r.X);
+  const etaX = 1 / (sX / P.zeta + sV / P.eps);
+  const rhs = sa * etaX + (1 - sa) * P.eta;
+  const ok = (b) => b ? '<span class="good">成立</span>' : '<span class="bad">不成立</span>';
+  $("checks").innerHTML =
+    `执行服务的需求弹性 η<sub>X</sub> = ${etaX.toFixed(2)}<br>` +
+    `命题1(i)：σ = ${P.sig.toFixed(1)} &gt; ${rhs.toFixed(2)}，${ok(P.sig > rhs)}（入门岗位减少）<br>` +
+    `命题1(ii)：η<sub>X</sub> &gt; η = ${P.eta.toFixed(2)}，${ok(etaX > P.eta)}（非替代岗位增加）<br>` +
+    `命题1(iii)：ζ &gt; ε，${ok(P.zeta > P.eps)}（评估技能价格上升）`;
+}
+// ---------------------------------------------------------------- minimal SVG line chart
+function line(id, legendId, series, opt){
+  const el = $(id), W = el.clientWidth || 520, H = 230, m = {l:44, r:22, t:8, b:26};
+  let xs = [], ys = [];
+  for (const s of series) for (const [x,y] of s.pts){ if (isFinite(y)){ xs.push(x); ys.push(y);} }
+  let x0 = opt.x0 || Math.min(...xs), x1 = opt.x1 || Math.max(...xs);
+  let y0 = Math.min(...ys), y1 = Math.max(...ys);
+  if (opt.zero){ y0 = Math.min(y0, 0); y1 = Math.max(y1, 0); }
+  if (opt.one){ y0 = Math.min(y0, 1); y1 = Math.max(y1, 1); }
+  const pad = (y1 - y0) * 0.08 || 0.5; y0 -= pad; y1 += pad;
+  const X = x => m.l + (x - x0) / (x1 - x0) * (W - m.l - m.r);
+  const Y = y => m.t + (1 - (y - y0) / (y1 - y0)) * (H - m.t - m.b);
+  const ticks = niceTicks(y0, y1, 5);
+  let svg = `<svg width="${W}" height="${H}" role="img">`;
+  for (const v of ticks) svg += `<line x1="${m.l}" x2="${W-m.r}" y1="${Y(v)}" y2="${Y(v)}" stroke="var(--line)"/><text x="${m.l-6}" y="${Y(v)+4}" text-anchor="end">${fmtTick(v)}</text>`;
+  const xt = []; const step = (x1 - x0) > 60 ? 20 : 10; for (let v = Math.ceil(x0/step)*step; v <= x1; v += step) xt.push(v);
+  for (const v of xt) svg += `<text x="${X(v)}" y="${H-8}" text-anchor="middle">${v}</text>`;
+  if (opt.zero && y0 < 0 && y1 > 0) svg += `<line x1="${m.l}" x2="${W-m.r}" y1="${Y(0)}" y2="${Y(0)}" stroke="var(--muted)" stroke-width="0.8"/>`;
+  if (opt.one) svg += `<line x1="${m.l}" x2="${W-m.r}" y1="${Y(1)}" y2="${Y(1)}" stroke="var(--muted)" stroke-width="0.8"/>`;
+  for (const s of series){
+    const d = s.pts.filter(p=>isFinite(p[1])).map((p,i)=>(i?"L":"M")+X(p[0]).toFixed(1)+","+Y(p[1]).toFixed(1)).join("");
+    svg += `<path d="${d}" fill="none" stroke="${s.color}" stroke-width="${s.w||2}" ${s.dash?'stroke-dasharray="5 4"':''} opacity="${s.op||1}"/>`;
+    if (s.dots) for (const p of s.pts) svg += `<circle cx="${X(p[0])}" cy="${Y(p[1])}" r="2.6" fill="${s.color}"/>`;
+  }
+  svg += `<rect x="${m.l}" y="${m.t}" width="${W-m.l-m.r}" height="${H-m.t-m.b}" fill="transparent" class="hov"/></svg>`;
+  el.innerHTML = svg;
+  $(legendId).innerHTML = series.map(s=>`<span><i style="background:${s.color};${s.dash?'opacity:.7':''}"></i>${s.name}</span>`).join("");
+  const rect = el.querySelector(".hov"), tip = $("tip");
+  rect.addEventListener("mousemove", ev => {
+    const bx = el.querySelector("svg").getBoundingClientRect();
+    const xv = x0 + (ev.clientX - bx.left - m.l) / (W - m.l - m.r) * (x1 - x0);
+    let rows = [];
+    for (const s of series){ let best = null; for (const p of s.pts) if (!best || Math.abs(p[0]-xv) < Math.abs(best[0]-xv)) best = p;
+      if (best) rows.push(`${s.name}：${fmtVal(best[1], opt)}`); }
+    const near = series[0].pts.reduce((a,p)=>Math.abs(p[0]-xv)<Math.abs(a[0]-xv)?p:a, series[0].pts[0]);
+    tip.innerHTML = `<b>${near[0]}年</b><br>` + rows.join("<br>");
+    tip.style.display = "block"; tip.style.left = (ev.clientX + 14) + "px"; tip.style.top = (ev.clientY + 10) + "px";
+  });
+  rect.addEventListener("mouseleave", () => tip.style.display = "none");
+}
+function fmtVal(v, opt){ return opt.unit === "%" ? v.toFixed(2) + "%" : v.toFixed(3); }
+function fmtTick(v){ return Math.abs(v) >= 10 ? v.toFixed(0) : Math.abs(v) >= 1 ? v.toFixed(1) : v.toFixed(2); }
+function niceTicks(a, b, n){
+  const span = b - a, raw = span / n, mag = Math.pow(10, Math.floor(Math.log10(raw)));
+  const st = [1,2,2.5,5,10].map(f=>f*mag).find(s=>span/s <= n) || mag*10;
+  const out = []; for (let v = Math.ceil(a/st)*st; v <= b + 1e-12; v += st) out.push(+v.toFixed(10)); return out;
+}
+// ---------------------------------------------------------------- start
+buildControls(); showVals();
+setTimeout(() => {
+  BASE = M.headline(D.targets, D.base, births, 0.30, 20, null, 2140);
+  run();
+}, 30);
+window.addEventListener("resize", () => { clearTimeout(timer); timer = setTimeout(run, 250); });
+})();
+</script>
+</body>
+</html>
